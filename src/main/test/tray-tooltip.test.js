@@ -21,7 +21,7 @@ test('Codex with available:false is dropped from the tooltip', () => {
   assert.match(tooltipOf(snap), /codex/, 'without the filter the stale Codex reading shows');
   const tip = tooltipOf(tooltipSnapshot(snap));
   assert.doesNotMatch(tip, /codex/i, tip);
-  assert.match(tip, /^Agent Meter · gmail: \d+% weekly · acme: full$/, tip);
+  assert.match(tip, /^Agent Meter · Claude Subscription 1: \d+% weekly · Claude Subscription 2: full$/, tip);
   assert.equal(snap.providers.length, 2, 'the snapshot itself is not modified');
 });
 

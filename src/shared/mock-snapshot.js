@@ -297,7 +297,7 @@ window.__MOCK_SNAPSHOT__ = {
         "accounts": [
           {
             "id": "default",
-            "name": "you@gmail.com",
+            "name": "Claude Subscription 1",
             "kind": "claude-app",
             "status": "ok",
             "error": null,
@@ -348,7 +348,7 @@ window.__MOCK_SNAPSHOT__ = {
           },
           {
             "id": "account_1",
-            "name": "you@acmelabs.com",
+            "name": "Claude Subscription 2",
             "kind": "folder",
             "status": "ok",
             "error": null,
@@ -608,7 +608,7 @@ window.__MOCK_SNAPSHOT__ = {
             "id": "default",
             "label": "Claude app & CLI",
             "path": "C:\\Users\\you\\.claude",
-            "accountName": "you@gmail.com",
+            "accountName": "Claude Subscription 1",
             "d30USD": 5052.91,
             "d30Tokens": 9592379753,
             "sessions30d": 1271,
@@ -618,7 +618,7 @@ window.__MOCK_SNAPSHOT__ = {
             "id": "account_1",
             "label": "Second account folder",
             "path": "C:\\Users\\you\\.claude-acct2",
-            "accountName": "you@acmelabs.com",
+            "accountName": "Claude Subscription 2",
             "d30USD": 0,
             "d30Tokens": 0,
             "sessions30d": 0,

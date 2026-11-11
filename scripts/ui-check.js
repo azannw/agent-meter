@@ -110,7 +110,7 @@ async function variantChecks(variant, expect) {
 
 app.whenReady().then(async () => {
   try {
-    // The usual state: gmail ahead of pace on its week, acme at its weekly limit.
+    // The usual state: Subscription 1 ahead of pace on its week, Subscription 2 at its weekly limit.
     await variantChecks('one-full', {
       claudeRows: true,
       status: [/^Weekly runs out in \d/, /^Limit reached · back in \d/],

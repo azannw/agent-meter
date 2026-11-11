@@ -63,7 +63,7 @@ test('gauge: the account the Claude app is using (limits.activeId) wins; the too
 
 test('tooltip from the mock snapshot', () => {
   const t = S.tooltipOf(mock);
-  assert.match(t, /^Agent Meter · gmail: 90% weekly · acme: full · codex: 87% /);
+  assert.match(t, /^Agent Meter · Claude Subscription 1: 90% weekly · Claude Subscription 2: full · codex: 87% /);
   assert.ok(t.length <= S.TOOLTIP_MAX, t);
 });
 
@@ -73,7 +73,7 @@ test('tooltip before data and while scanning', () => {
 });
 
 test('tooltip flags example data and never exceeds 127 chars', () => {
-  assert.match(S.tooltipOf(mock, { example: true }), /^Agent Meter · example data · gmail/);
+  assert.match(S.tooltipOf(mock, { example: true }), /^Agent Meter · example data · Claude Subscription 1/);
   const many = JSON.parse(JSON.stringify(mock));
   for (let i = 0; i < 20; i++) {
     many.providers[0].limits.accounts.push({
