@@ -1,0 +1,20 @@
+{
+  "name": "agent-meter",
+  "productName": "Agent Meter",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Tray dashboard for coding-agent limits, tokens and API-equivalent cost on Windows.",
+  "main": "src/main/main.js",
+  "scripts": {
+    "start": "electron .",
+    "snapshot": "node src/data/cli.js --pretty",
+    "test": "node --test --test-timeout=30000 \"src/data/test/*.test.js\" \"src/main/test/*.test.js\"",
+    "capture": "electron . --capture capture.png",
+    "selftest": "electron . --selftest",
+    "icons": "node scripts/make-icons.js",
+    "test:ui": "electron scripts/ui-check.js"
+  },
+  "devDependencies": {
+    "electron": "^44.5.1"
+  }
+}

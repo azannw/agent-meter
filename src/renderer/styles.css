@@ -1,0 +1,519 @@
+/* Agent Meter - popup panel (design round 4, 2026-10-03).
+   One quiet page: the spend figures, an aligned table of usage limits (one row per limit,
+   the same columns for every account), and the daily cost chart. Colour carries meaning
+   only: Claude coral is identity (meters, chart), yellow and red appear only as a status
+   dot next to the words that explain them. Every colour is a token here. */
+
+:root {
+  color-scheme: dark;
+
+  /* Surfaces */
+  --frame: 12px; /* transparent margin around the panel; it holds the shadow */
+  --panel-bg: #262624; /* Claude's dark grey: he asked for no pure black (2026-10-03) */
+  --panel-stroke: rgba(255, 255, 255, 0.10);
+  --panel-shadow: 0 3px 9px rgba(0, 0, 0, 0.40), 0 0 1px rgba(0, 0, 0, 0.55);
+  --hairline: rgba(255, 255, 255, 0.09);
+  --hover-plate: rgba(255, 255, 255, 0.06);
+  --press-plate: rgba(255, 255, 255, 0.035);
+  --button-bg: rgba(255, 255, 255, 0.10);
+  --button-bg-hover: rgba(255, 255, 255, 0.14);
+  --flyout-bg: #32322f; /* one step above the panel, so the tooltip reads as raised */
+  --flyout-shadow: 0 6px 18px rgba(0, 0, 0, 0.55);
+
+  /* Text */
+  --text-hero: rgba(255, 255, 255, 0.94);
+  --text-1: rgba(255, 255, 255, 0.86); /* values, labels */
+  --text-2: rgba(255, 255, 255, 0.56); /* captions, accounts, reset times */
+  --text-3: rgba(255, 255, 255, 0.40); /* column heads, chart axis */
+  --text-on-accent: #ffffff;
+
+  /* Identity: the meter's track is a lighter step of its own hue, so the whole bar reads as one */
+  --claude: #cc7c5e;
+  --claude-track: rgba(204, 124, 94, 0.17);
+  --codex: #49a3b0;
+  --codex-track: rgba(73, 163, 176, 0.17);
+  --series-other: rgba(255, 255, 255, 0.56);
+  --other-track: rgba(255, 255, 255, 0.08);
+  --accent: #0a84ff; /* selected tab, progress, focus */
+
+  /* Status: only ever as a dot beside words */
+  --warn: #ffd60a;
+  --critical: #ff453a;
+
+  /* Type */
+  --font-text: "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
+  --font-display: "Segoe UI Variable Display", "Segoe UI", system-ui, sans-serif;
+  --font-icons: "Segoe Fluent Icons", "Segoe MDL2 Assets";
+
+  /* Rhythm */
+  --pad: 16px;
+  --col-label: 50px;
+  --col-pct: 38px;
+  --col-reset: 58px;
+  --col-gap: 12px;
+
+  /* Motion */
+  --ease-out: cubic-bezier(0.1, 0.9, 0.2, 1);
+  --hover-bg: background-color 83ms linear;
+  --hover-fg: color 167ms linear;
+}
+
+/* ------------------------------------------------------------------ base */
+
+* { box-sizing: border-box; }
+
+html, body {
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+  background: transparent;
+}
+
+body {
+  color: var(--text-1);
+  font-family: var(--font-text);
+  font-size: 13px;
+  line-height: 18px;
+  -webkit-font-smoothing: antialiased;
+  user-select: none;
+  cursor: default;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: 0;
+  margin: 0;
+  padding: 0;
+  cursor: default;
+}
+
+[hidden] { display: none !important; }
+
+:focus { outline: none; }
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+h2 { margin: 0; font: inherit; }
+
+.icon {
+  font-family: var(--font-icons);
+  font-style: normal;
+  font-weight: normal;
+  line-height: 1;
+}
+
+/* Columns of numbers line up; standalone big numbers keep proportional figures. */
+.tnum { font-variant-numeric: tabular-nums; }
+
+/* ------------------------------------------------------------------ frame and panel */
+
+.frame {
+  position: fixed;
+  inset: 0;
+  padding: var(--frame);
+}
+
+.panel {
+  position: relative;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background: var(--panel-bg);
+  border: 1px solid var(--panel-stroke);
+  border-radius: 8px;
+  box-shadow: var(--panel-shadow);
+  overflow: hidden;
+}
+/* Invisible until the shell says it is showing (onShow); app.js animates it in and out. */
+.panel.is-concealed { opacity: 0; }
+
+/* ------------------------------------------------------------------ header (pinned) */
+
+.top {
+  flex: none;
+  padding: 16px var(--pad) 0;
+  transition: box-shadow 120ms linear;
+}
+.top.is-scrolled { box-shadow: 0 1px 0 var(--hairline); }
+
+.tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 16px;
+}
+.tab {
+  position: relative;
+  flex: 1 1 0;
+  height: 26px;
+  border-radius: 6px;
+  font-size: 12px;
+  color: var(--text-2);
+  transition: var(--hover-bg), var(--hover-fg);
+}
+.tab:hover { background: var(--hover-plate); }
+.tab:active { background: var(--press-plate); }
+.tab[aria-selected="true"] {
+  background: var(--accent);
+  color: var(--text-on-accent);
+}
+
+.hero {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  column-gap: var(--pad);
+  padding-bottom: 4px;
+}
+.hero-cap {
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--text-2);
+}
+.hero-value {
+  margin-top: 2px;
+  font-family: var(--font-display);
+  font-size: 30px;
+  line-height: 36px;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  color: var(--text-hero);
+  white-space: nowrap;
+  font-variant-numeric: proportional-nums;
+}
+.hero-sub {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  margin-top: 4px;
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--text-2);
+  white-space: nowrap;
+}
+.hero-sub-v { font-weight: 600; color: var(--text-1); }
+
+/* ------------------------------------------------------------------ scroller */
+
+.scroller {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-gutter: stable;
+}
+.scroller:focus-visible { outline-offset: -2px; border-radius: 6px; }
+/* Thin overlay-style scrollbar: only while scrolling or under the pointer. */
+.scroller::-webkit-scrollbar { width: 10px; }
+.scroller::-webkit-scrollbar-track { background: transparent; }
+.scroller::-webkit-scrollbar-thumb {
+  background-color: transparent;
+  border-radius: 10px;
+  border: 4px solid transparent;
+  background-clip: padding-box;
+  min-height: 32px;
+}
+.scroller.is-scrolling::-webkit-scrollbar-thumb { background-color: rgba(255, 255, 255, 0.28); }
+.scroller:hover::-webkit-scrollbar-thumb { background-color: rgba(255, 255, 255, 0.22); border-width: 3px; }
+.scroller::-webkit-scrollbar-thumb:hover { background-color: rgba(255, 255, 255, 0.40); }
+.scroller::-webkit-scrollbar-button { display: none; height: 0; }
+
+.content {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  /* right: 6 + the 10 px scrollbar gutter = 16 */
+  padding: 22px calc(var(--pad) - 10px) var(--pad) var(--pad);
+}
+.content[data-view="loading"], .content[data-view="error"], .content[data-view="empty"] { padding-top: 8px; }
+
+/* ------------------------------------------------------------------ notices (only when something is wrong) */
+
+.notices { display: flex; flex-direction: column; gap: 6px; }
+.notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--text-2);
+}
+.notice .dot { margin-top: 5px; }
+.notice-text { flex: 1 1 auto; min-width: 0; overflow-wrap: anywhere; }
+.notice-x {
+  flex: none;
+  width: 20px;
+  height: 16px;
+  margin-right: -4px;
+  border-radius: 4px;
+  font-size: 9px;
+  color: var(--text-3);
+  transition: var(--hover-bg), var(--hover-fg);
+}
+.notice-x:hover { background: var(--hover-plate); color: var(--text-1); }
+
+.dot {
+  flex: none;
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+.dot.is-warn { background: var(--warn); }
+.dot.is-critical { background: var(--critical); }
+
+/* ------------------------------------------------------------------ sections */
+
+.section-head {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: baseline;
+  column-gap: var(--col-gap);
+  margin-bottom: 12px;
+}
+.section-title {
+  font-size: 13px;
+  line-height: 18px;
+  font-weight: 600;
+  color: var(--text-1);
+}
+.col-head {
+  width: var(--col-reset);
+  text-align: right;
+  font-size: 11px;
+  line-height: 14px;
+  color: var(--text-3);
+  white-space: nowrap;
+}
+
+/* ------------------------------------------------------------------ limits table */
+
+.acct + .acct { margin-top: 16px; }
+
+.acct-head {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  min-width: 0;
+  margin-bottom: 4px;
+}
+.acct-name {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--text-2);
+}
+.acct-status {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--text-1);
+  white-space: nowrap;
+}
+.acct-status.is-quiet { color: var(--text-2); }
+
+.row {
+  display: grid;
+  grid-template-columns: var(--col-label) 1fr var(--col-pct) var(--col-reset);
+  column-gap: var(--col-gap);
+  align-items: center;
+  height: 24px;
+  transition: opacity 167ms linear;
+}
+.acct.is-blocked .row { opacity: 0.42; }
+.row-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text-1);
+}
+.row-pct {
+  text-align: right;
+  font-weight: 600;
+  color: var(--text-1);
+  white-space: nowrap;
+}
+.row-reset {
+  text-align: right;
+  font-size: 12px;
+  color: var(--text-2);
+  white-space: nowrap;
+}
+.row.is-empty .row-pct, .row.is-empty .row-reset { color: var(--text-3); font-weight: 400; }
+
+/* The meter: a 6 px pill; the track is a lighter step of the fill's hue. */
+.meter {
+  position: relative;
+  height: 6px;
+  border-radius: 3px;
+  overflow: hidden;
+}
+.meter-fill {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  border-radius: 3px;
+}
+.meter-fill.is-moving { transition: width 600ms var(--ease-out); }
+
+/* ------------------------------------------------------------------ daily chart */
+
+.legend { display: flex; gap: 10px; font-size: 12px; line-height: 16px; color: var(--text-2); }
+.legend-item { display: inline-flex; align-items: center; gap: 5px; }
+.swatch { display: inline-block; width: 7px; height: 7px; border-radius: 2px; flex: none; }
+
+.chart { position: relative; }
+.chart-plot { position: relative; }
+.chart-note { font-size: 12px; line-height: 16px; color: var(--text-2); }
+.chart-empty {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.chart-bars {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  border-bottom: 1px solid var(--hairline);
+}
+.chart-col {
+  flex: 1 1 0;
+  height: 100%;
+  display: flex;
+  align-items: flex-end;
+  min-width: 0;
+}
+.chart-stack {
+  width: 100%;
+  display: flex;
+  flex-direction: column-reverse;
+  gap: 2px;
+  border-radius: 3px 3px 0 0;
+  overflow: hidden;
+  opacity: 0.74;
+  transition: opacity 83ms linear;
+}
+.chart-col.is-today .chart-stack { opacity: 1; }
+.chart-seg { flex-basis: 0; min-height: 0; }
+/* Off-scale bar: a transparent cut near the top says "taller than drawn". */
+.chart-stack.is-clipped {
+  -webkit-mask-image: linear-gradient(to bottom, #000 0, #000 7px, transparent 7px, transparent 10px, #000 10px);
+  mask-image: linear-gradient(to bottom, #000 0, #000 7px, transparent 7px, transparent 10px, #000 10px);
+}
+.chart-bars.has-hover .chart-stack { opacity: 0.32; }
+.chart-bars.has-hover .chart-col.is-hover .chart-stack { opacity: 1; }
+.chart-stack.is-moving { transition: height 600ms var(--ease-out), opacity 83ms linear; }
+
+.chart-peak {
+  position: absolute;
+  top: 0;
+  font-size: 11px;
+  line-height: 14px;
+  color: var(--text-2);
+  white-space: nowrap;
+  pointer-events: none;
+}
+.chart-axis {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 5px;
+  font-size: 11px;
+  line-height: 14px;
+  color: var(--text-3);
+}
+
+.chart-tip {
+  position: absolute;
+  top: 0;
+  z-index: 5;
+  min-width: 132px;
+  padding: 7px 10px 8px;
+  border-radius: 6px;
+  background: var(--flyout-bg);
+  border: 1px solid var(--hairline);
+  box-shadow: var(--flyout-shadow);
+  pointer-events: none;
+  white-space: nowrap;
+}
+.tip-date { font-size: 12px; line-height: 16px; color: var(--text-2); }
+.tip-main { display: flex; align-items: baseline; gap: 8px; margin-top: 1px; }
+.tip-money { font-weight: 600; }
+.tip-tokens { font-size: 12px; color: var(--text-2); }
+.tip-part { display: flex; align-items: center; gap: 6px; margin-top: 3px; font-size: 12px; line-height: 16px; color: var(--text-2); }
+.tip-part-value { margin-left: auto; padding-left: 12px; color: var(--text-1); }
+
+/* ------------------------------------------------------------------ loading / empty / error */
+
+.state-block { padding: 26px 8px 8px; text-align: center; }
+.state-title { font-size: 15px; line-height: 20px; font-weight: 600; }
+.state-sub {
+  margin: 6px auto 0;
+  max-width: 300px;
+  font-size: 12px;
+  line-height: 17px;
+  color: var(--text-2);
+}
+.state-meta { margin-top: 10px; font-size: 12px; line-height: 16px; color: var(--text-2); }
+.state-block .btn { margin-top: 16px; }
+
+.btn {
+  height: 28px;
+  padding: 0 14px;
+  border-radius: 6px;
+  background: var(--button-bg);
+  transition: var(--hover-bg), var(--hover-fg);
+}
+.btn:hover { background: var(--button-bg-hover); }
+.btn:active { background: var(--press-plate); color: var(--text-2); }
+
+.progress {
+  position: relative;
+  height: 4px;
+  margin: 20px auto 0;
+  max-width: 240px;
+  border-radius: 2px;
+  background: var(--other-track);
+  overflow: hidden;
+}
+.progress-fill {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 0;
+  border-radius: 2px;
+  background: var(--accent);
+  transition: width 120ms linear;
+}
+.progress.is-indeterminate .progress-fill {
+  width: 30%;
+  animation: am-indeterminate 1.4s var(--ease-out) infinite;
+}
+
+/* ------------------------------------------------------------------ motion */
+
+@keyframes am-indeterminate {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(340%); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tab, .btn, .top, .row, .notice-x { transition: none; }
+  .meter-fill.is-moving, .chart-stack.is-moving { transition: none; }
+}
